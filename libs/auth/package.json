@@ -1,0 +1,37 @@
+{
+  "name": "@nestjs-practice/auth",
+  "version": "0.0.1",
+  "description": "Authentication and authorization utilities",
+  "main": "./dist/auth/src/index.js",
+  "types": "./dist/auth/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "build:watch": "tsc -p tsconfig.lib.json --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/passport": "^10.0.0",
+    "@nestjs/jwt": "^10.1.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "bcrypt": "^5.1.0",
+    "@nestjs/config": "^3.1.1",
+    "@nestjs-practice/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/passport-jwt": "^3.0.13",
+    "@types/passport-local": "^1.0.38",
+    "@types/bcrypt": "^5.0.2",
+    "typescript": "^5.7.3"
+  }
+}

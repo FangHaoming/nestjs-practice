@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestjs-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: nestjs_user
+      DB_PASSWORD: nestjs_password
+      DB_DATABASE: nestjs_db
+      MONGODB_URI: mongodb://admin:admin_password@mongodb:27017/nestjs_practice?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+      - mongodb
+      - redis
+    networks:
+      - nestjs-network
+    volumes:
+      - ./dist:/app/dist
+
+  # Admin Application
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestjs-admin
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: nestjs_user
+      DB_PASSWORD: nestjs_password
+      DB_DATABASE: nestjs_db
+      MONGODB_URI: mongodb://admin:admin_password@mongodb:27017/nestjs_practice?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mysql
+      - mongodb
+      - redis
+    networks:
+      - nestjs-network
+    volumes:
+      - ./dist:/app/dist
+    command: ["node", "dist/apps/admin/main"]
+
+networks:
+  nestjs-network:
+    external: true
