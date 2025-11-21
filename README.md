@@ -81,7 +81,9 @@ npm run start:admin:dev
 docker-compose up -d
 
 # Start applications
-docker-compose -f docker-compose.apps.yml up --build
+docker-compose -f docker-compose.apps.yml up -d
+
+docker-compose -f docker-compose.yml -f docker-compose.apps.yml up --build
 ```
 
 ## 🌐 API Endpoints

@@ -1,13 +1,10 @@
-version: '3.8'
-
 services:
   # API Application
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:20-alpine
     container_name: nestjs-api
     restart: unless-stopped
+    working_dir: /app
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -24,22 +21,18 @@ services:
       JWT_EXPIRES_IN: 24h
     ports:
       - "3000:3000"
-    depends_on:
-      - mysql
-      - mongodb
-      - redis
     networks:
       - nestjs-network
     volumes:
-      - ./dist:/app/dist
+      - .:/app
+    command: sh -c "yarn install --frozen-lockfile --production && node dist/apps/api/main"
 
   # Admin Application
   admin:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:20-alpine
     container_name: nestjs-admin
     restart: unless-stopped
+    working_dir: /app
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -56,16 +49,12 @@ services:
       JWT_EXPIRES_IN: 24h
     ports:
       - "3001:3001"
-    depends_on:
-      - mysql
-      - mongodb
-      - redis
     networks:
       - nestjs-network
     volumes:
-      - ./dist:/app/dist
-    command: ["node", "dist/apps/admin/main"]
+      - .:/app
+    command: sh -c "yarn install --frozen-lockfile --production && node dist/apps/admin/main"
 
 networks:
   nestjs-network:
-    external: true
+    driver: bridge

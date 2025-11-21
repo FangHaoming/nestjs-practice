@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MySQL Database
   mysql:
@@ -50,50 +48,50 @@ services:
       - nestjs-network
 
   # Redis Commander (Optional - for Redis GUI)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: nestjs-redis-commander
-    restart: unless-stopped
-    environment:
-      REDIS_HOSTS: local:redis:6379:0:redis_password
-    ports:
-      - "8081:8081"
-    depends_on:
-      - redis
-    networks:
-      - nestjs-network
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: nestjs-redis-commander
+  #   restart: unless-stopped
+  #   environment:
+  #     REDIS_HOSTS: local:redis:6379:0:redis_password
+  #   ports:
+  #     - "8081:8081"
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - nestjs-network
 
-  # MongoDB Express (Optional - for MongoDB GUI)
-  mongo-express:
-    image: mongo-express:latest
-    container_name: nestjs-mongo-express
-    restart: unless-stopped
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: admin_password
-      ME_CONFIG_MONGODB_URL: mongodb://admin:admin_password@mongodb:27017/
-    ports:
-      - "8082:8081"
-    depends_on:
-      - mongodb
-    networks:
-      - nestjs-network
+  # # MongoDB Express (Optional - for MongoDB GUI)
+  # mongo-express:
+  #   image: mongo-express:latest
+  #   container_name: nestjs-mongo-express
+  #   restart: unless-stopped
+  #   environment:
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: admin_password
+  #     ME_CONFIG_MONGODB_URL: mongodb://admin:admin_password@mongodb:27017/
+  #   ports:
+  #     - "8082:8081"
+  #   depends_on:
+  #     - mongodb
+  #   networks:
+  #     - nestjs-network
 
-  # phpMyAdmin (Optional - for MySQL GUI)
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: nestjs-phpmyadmin
-    restart: unless-stopped
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: nestjs_user
-      PMA_PASSWORD: nestjs_password
-    ports:
-      - "8080:80"
-    depends_on:
-      - mysql
-    networks:
-      - nestjs-network
+  # # phpMyAdmin (Optional - for MySQL GUI)
+  # phpmyadmin:
+  #   image: phpmyadmin:latest
+  #   container_name: nestjs-phpmyadmin
+  #   restart: unless-stopped
+  #   environment:
+  #     PMA_HOST: mysql
+  #     PMA_USER: nestjs_user
+  #     PMA_PASSWORD: nestjs_password
+  #   ports:
+  #     - "8080:80"
+  #   depends_on:
+  #     - mysql
+  #   networks:
+  #     - nestjs-network
 
 volumes:
   mysql_data:

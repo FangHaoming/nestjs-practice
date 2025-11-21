@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build:libs": "yarn workspace @nestjs-practice/shared run build && concurrently \"yarn workspace @nestjs-practice/auth run build\" \"yarn workspace @nestjs-practice/database run build\"",
-    "build": "yarn build:libs && nest build",
+    "build": "yarn build:libs && concurrently \"nest build api\" \"nest build admin\"",
     "build:libs:watch": "concurrently \"yarn workspace @nestjs-practice/shared run build:watch\" \"yarn workspace @nestjs-practice/auth run build:watch\" \"yarn workspace @nestjs-practice/database run build:watch\"",
     "build:api": "yarn build:libs && nest build api",
     "build:admin": "yarn build:libs && nest build admin",
