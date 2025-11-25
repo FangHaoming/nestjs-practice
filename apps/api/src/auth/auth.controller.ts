@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '@nestjs-practice/auth';
 import { LoginDto, CreateUserDto } from '@nestjs-practice/shared';
 import { LocalAuthGuard } from '@nestjs-practice/auth';
@@ -29,8 +29,10 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   getProfile(@Request() req) {
     return req.user;
   }

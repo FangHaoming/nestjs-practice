@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 -- Insert sample data
+-- NOTE: These are placeholder users with placeholder passwords.
+-- To use these accounts, you need to register them via the /auth/register endpoint first,
+-- or manually update the password hash in the database.
+-- The password hash format should be a valid bcrypt hash (e.g., generated with bcrypt.hash('password123', 10))
 INSERT INTO users (email, password, firstName, lastName, role) VALUES 
 ('admin@example.com', '$2b$10$example_hashed_password', 'Admin', 'User', 'admin'),
 ('user@example.com', '$2b$10$example_hashed_password', 'Regular', 'User', 'user');

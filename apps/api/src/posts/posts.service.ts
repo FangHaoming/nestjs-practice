@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Post, User } from '@nestjs-practice/shared';
+import { Post, User, CreatePostDto, UpdatePostDto } from '@nestjs-practice/shared';
 
 @Injectable()
 export class PostsService {
@@ -12,7 +12,7 @@ export class PostsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(createPostDto: any, authorId: number): Promise<Post> {
+  async create(createPostDto: CreatePostDto, authorId: number): Promise<Post> {
     const author = await this.userRepository.findOne({
       where: { id: authorId },
     });
@@ -24,6 +24,8 @@ export class PostsService {
     const post = this.postRepository.create({
       ...createPostDto,
       author,
+      authorId,
+      isPublished: false, // 默认创建为草稿
     });
 
     const savedPost = await this.postRepository.save(post);
@@ -57,7 +59,7 @@ export class PostsService {
     return post;
   }
 
-  async update(id: number, updatePostDto: any, userId: number, userRole: string): Promise<Post> {
+  async update(id: number, updatePostDto: UpdatePostDto, userId: number, userRole: string): Promise<Post> {
     const post = await this.findOne(id);
 
     if (post.author.id !== userId && userRole !== 'admin') {
@@ -87,5 +89,22 @@ export class PostsService {
 
     post.isPublished = true;
     return this.postRepository.save(post);
+  }
+
+  async search(keyword: string): Promise<Post[]> {
+    if (!keyword || keyword.trim() === '') {
+      return this.findAll();
+    }
+
+    return this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('post.isPublished = :isPublished', { isPublished: true })
+      .andWhere(
+        '(post.title LIKE :keyword OR post.content LIKE :keyword OR post.excerpt LIKE :keyword)',
+        { keyword: `%${keyword}%` },
+      )
+      .orderBy('post.createdAt', 'DESC')
+      .getMany();
   }
 }

@@ -1,23 +1,35 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from '@nestjs-practice/shared';
+import { CreateUserDto, User } from '@nestjs-practice/shared';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    // This would typically query the database
-    // For now, we'll use a mock implementation
-    if (email === 'admin@example.com' && password === 'password') {
-      return {
-        id: 1,
-        email: 'admin@example.com',
-        role: 'admin',
-      };
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      return null;
     }
-    return null;
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    // Return user without password
+    const { password: _, ...result } = user;
+    return result;
   }
 
   async login(user: any) {
@@ -27,23 +39,33 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
       },
     };
   }
 
   async register(createUserDto: CreateUserDto) {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     
-    // This would typically save to database
-    return {
-      id: Date.now(),
-      email: createUserDto.email,
-      firstName: createUserDto.firstName,
-      lastName: createUserDto.lastName,
-      role: createUserDto.role || 'user',
+    const user = this.userRepository.create({
+      ...createUserDto,
       password: hashedPassword,
-    };
+      role: createUserDto.role || 'user',
+    });
+
+    const savedUser = await this.userRepository.save(user);
+    const { password: _, ...result } = savedUser;
+    return result;
   }
 
   async validateToken(token: string) {

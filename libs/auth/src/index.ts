@@ -5,3 +5,4 @@ export * from './guards/local-auth.guard';
 export * from './guards/roles.guard';
 export * from './strategies/jwt.strategy';
 export * from './strategies/local.strategy';
+export { Roles, ROLES_KEY } from './guards/roles.guard';
