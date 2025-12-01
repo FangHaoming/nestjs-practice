@@ -7,3 +7,4 @@ export * from './pipes/validation.pipe';
 export * from './interceptors/logging.interceptor';
 export * from './interceptors/transform.interceptor';
 export * from './filters/http-exception.filter';
+export * from './middleware/request-id.middleware';

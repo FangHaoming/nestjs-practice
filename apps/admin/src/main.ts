@@ -4,7 +4,8 @@ import {
   CustomValidationPipe, 
   LoggingInterceptor, 
   TransformInterceptor, 
-  HttpExceptionFilter 
+  HttpExceptionFilter,
+  requestIdMiddleware
 } from '@nestjs-practice/shared';
 import { AdminModule } from './admin.module';
 
@@ -13,6 +14,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('admin/v1');
+
+  // 注册 RequestId 中间件（必须在最前面）
+  app.use(requestIdMiddleware);
 
   app.useGlobalPipes(new CustomValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());

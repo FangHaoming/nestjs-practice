@@ -12,13 +12,19 @@ export interface PaginationResult<T> {
   totalPages: number;
 }
 
-export interface ApiResponse<T = any> {
+/**
+ * 统一的 API 响应接口
+ * 用于成功和错误响应的统一格式
+ * - 成功时：data 包含响应数据
+ * - 错误时：data 包含错误详情（如验证错误列表、错误消息等）
+ */
+export interface IApiResponse<T = any> {
   success: boolean;
   message: string;
-  data?: T;
-  error?: string;
+  code: number;
   timestamp: string;
-  path: string;
+  requestId: string;
+  data?: T;
 }
 
 export interface UserResponse {
@@ -56,15 +62,6 @@ export interface PaginationQuery {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export interface ErrorResponse {
-  success: false;
-  message: string;
-  details?: any;
-  timestamp: string;
-  path: string;
-  method: string;
-  statusCode: number;
-}
 
 export class BaseDto {
   createdAt?: Date;

@@ -1,28 +1,25 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-export interface Response<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  timestamp: string;
-  path: string;
-}
+import { IApiResponse } from '@nestjs-practice/shared';
 
 @Injectable()
-export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
-    const request = context.switchToHttp().getRequest();
-    const path = request.url;
+export class TransformInterceptor<T> implements NestInterceptor<T, IApiResponse<T>> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<IApiResponse<T>> {
+    const ctx = context.switchToHttp();
+    const request = ctx.getRequest();
+    const response = ctx.getResponse();
+    const statusCode = response.statusCode || 200;
+    const requestId = request['requestId'] || 'unknown';
 
     return next.handle().pipe(
       map(data => ({
         success: true,
-        message: 'Request successful',
-        data,
+        message: 'success',
+        code: statusCode,
         timestamp: new Date().toISOString(),
-        path,
+        requestId,
+        data,
       })),
     );
   }

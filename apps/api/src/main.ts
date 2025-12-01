@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { 
   CustomValidationPipe, 
   LoggingInterceptor, 
   TransformInterceptor, 
-  HttpExceptionFilter 
+  HttpExceptionFilter,
+  requestIdMiddleware
 } from '@nestjs-practice/shared';
 import { ApiModule } from './api.module';
 
@@ -15,6 +15,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('api/v1');
+
+  // 注册 RequestId 中间件（必须在最前面）
+  app.use(requestIdMiddleware);
 
   app.useGlobalPipes(new CustomValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
