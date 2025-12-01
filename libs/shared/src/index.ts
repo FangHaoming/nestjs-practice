@@ -8,3 +8,6 @@ export * from './interceptors/logging.interceptor';
 export * from './interceptors/transform.interceptor';
 export * from './filters/http-exception.filter';
 export * from './middleware/request-id.middleware';
+export * from './services/logger.service';
+export * from './utils/env.util';
+export * from './utils/console.util';

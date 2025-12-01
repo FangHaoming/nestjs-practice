@@ -1,18 +1,41 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { IApiResponse } from '@nestjs-practice/shared';
+import { IApiResponse, LoggerService } from '@nestjs-practice/shared';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
+  private readonly logger: LoggerService;
+
+  constructor() {
+    this.logger = new LoggerService();
+  }
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const { method, url, ip } = request;
+    const { method, url, ip, body, query, params } = request;
     const userAgent = request.get('User-Agent') || '';
     const requestId = request['requestId'] || 'unknown';
     const now = Date.now();
+    const timestamp = new Date().toISOString();
 
-    console.log(`[${new Date().toISOString()}] [${requestId}] ${method} ${url} - ${ip} ${userAgent}`);
+    // 合并请求参数
+    const payload = {
+      ...(body && Object.keys(body).length > 0 && { body }),
+      ...(query && Object.keys(query).length > 0 && { query }),
+      ...(params && Object.keys(params).length > 0 && { params }),
+    };
+
+    // 记录请求日志
+    this.logger.logRequest({
+      date: timestamp,
+      requestId,
+      method,
+      url,
+      payload: Object.keys(payload).length > 0 ? payload : undefined,
+      ip,
+      userAgent,
+    });
 
     return next.handle().pipe(
       tap((data: IApiResponse) => {
@@ -22,7 +45,16 @@ export class LoggingInterceptor implements NestInterceptor {
         const delay = Date.now() - now;
         const finalRequestId = data?.requestId || requestId;
         
-        console.log(`[${new Date().toISOString()}] [${finalRequestId}] ${method} ${url} - ${code} - ${delay}ms`);
+        // 记录响应日志
+        this.logger.logResponse({
+          date: new Date().toISOString(),
+          requestId: finalRequestId,
+          method,
+          url,
+          code,
+          delay,
+          response: data,
+        });
       }),
     );
   }

@@ -1,15 +1,23 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { IApiResponse } from '@nestjs-practice/shared';
+import { IApiResponse, LoggerService } from '@nestjs-practice/shared';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger: LoggerService;
+
+  constructor() {
+    this.logger = new LoggerService();
+  }
+
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const { method, url, body, query, params } = request;
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const requestId = request['requestId'] || 'unknown';
+    const timestamp = new Date().toISOString();
 
     const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : null;
     
@@ -30,13 +38,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
       success: false,
       message,
       code: status,
-      timestamp: new Date().toISOString(),
+      timestamp,
       requestId,
       ...(errorData && { data: errorData }),
     };
 
-    // 在错误日志中也打印 requestId
-    console.error(`[${new Date().toISOString()}] [${requestId}] Error: ${message} - ${status}`);
+    // 合并请求参数
+    const payload = {
+      ...(body && Object.keys(body).length > 0 && { body }),
+      ...(query && Object.keys(query).length > 0 && { query }),
+      ...(params && Object.keys(params).length > 0 && { params }),
+    };
+
+    // 记录错误日志
+    this.logger.logError({
+      date: timestamp,
+      requestId,
+      method,
+      url,
+      code: status,
+      payload: Object.keys(payload).length > 0 ? payload : undefined,
+      response: errorResponse,
+      error: message,
+    });
 
     response.status(status).json(errorResponse);
   }
