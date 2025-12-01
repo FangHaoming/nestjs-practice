@@ -316,10 +316,9 @@ JWT_EXPIRES_IN=24h
 
 ```bash
 # 开发模式
-yarn start:dev              # 启动所有应用 (开发模式)
-yarn start:api:dev          # 仅启动 API 应用
-yarn start:admin:dev        # 仅启动 Admin 应用
 yarn dev:libs               # 监听并构建共享库
+yarn dev:api                # 仅启动 API 应用
+yarn dev:admin              # 仅启动 Admin 应用
 
 # 构建
 yarn build                  # 构建所有应用和库
