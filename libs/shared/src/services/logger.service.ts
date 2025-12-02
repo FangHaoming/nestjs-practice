@@ -1,7 +1,11 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as path from 'path';
-import * as fs from 'fs';
-import { ConsoleUtil, EnvUtil } from '../utils';
+import * as winston from 'winston';
+import * as DailyRotateFileModule from 'winston-daily-rotate-file';
+import { ConsoleUtil, EnvUtil, DateUtil } from '../utils';
+
+// 处理 CommonJS 默认导出
+const DailyRotateFile = (DailyRotateFileModule as any).default || DailyRotateFileModule;
 
 export interface LogData {
   date: string;
@@ -20,17 +24,49 @@ export interface LogData {
 @Injectable()
 export class LoggerService implements NestLoggerService {
   private logsDir = path.join(process.cwd(), 'logs');
-  private maxDays = 30; // 保留30天
-  private maxFileSize = 20 * 1024 * 1024; // 20MB
+  private maxSize = '20m'; // 20MB
+  private maxFiles = '30d'; // 保留30天的日志文件
+  private applicationLogger: winston.Logger;
+  private errorLogger: winston.Logger;
 
   constructor() {
-    // 确保日志目录存在
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-    }
+    // 创建日志格式（直接输出消息，因为时间已经在 formatLogLine 中格式化）
+    const logFormat = winston.format.printf(({ message }) => {
+      return message as string;
+    });
 
-    // 启动时清理旧日志
-    this.cleanOldLogs();
+    const applicationTransport = new DailyRotateFile({
+      filename: path.join(this.logsDir, 'application-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: this.maxSize,
+      maxFiles: this.maxFiles,
+      format: logFormat,
+      utc: false, // 使用服务器本地时间
+      createSymlink: false,
+      zippedArchive: false,
+    });
+
+    const errorTransport = new DailyRotateFile({
+      filename: path.join(this.logsDir, 'error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: this.maxSize,
+      maxFiles: this.maxFiles,
+      level: 'error',
+      format: logFormat,
+      utc: false, // 使用服务器本地时间
+      createSymlink: false,
+      zippedArchive: false,
+    });
+
+    // 创建应用日志记录器
+    this.applicationLogger = winston.createLogger({
+      transports: [applicationTransport],
+    });
+
+    // 创建错误日志记录器
+    this.errorLogger = winston.createLogger({
+      transports: [errorTransport],
+    });
   }
 
   /**
@@ -63,12 +99,16 @@ export class LoggerService implements NestLoggerService {
 
   /**
    * 格式化日志行
-   * 格式：日期 | requestId | method | url | code | delay | payload | response | error
+   * 格式：[日期] | [requestId] | method | url | code | delay | payload | response | error
    */
   private formatLogLine(logData: LogData): string {
+    const dateStr = logData.date 
+      ? DateUtil.formatDate(logData.date) 
+      : DateUtil.formatDate(new Date());
+    
     const parts = [
-      logData.date || new Date().toISOString(),
-      logData.requestId || 'unknown',
+      `[${dateStr}]`,
+      `[${logData.requestId || 'unknown'}]`,
       logData.method || '-',
       logData.url || '-',
       logData.code !== undefined ? String(logData.code) : '-',
@@ -100,52 +140,15 @@ export class LoggerService implements NestLoggerService {
    */
   private writeLog(type: 'application' | 'error', logLine: string): void {
     try {
-      const date = new Date();
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-      const filename = `${type}-${dateStr}.log`;
-      const filepath = path.join(this.logsDir, filename);
-
-      // 检查文件大小，如果超过限制则轮转
-      if (fs.existsSync(filepath)) {
-        const stats = fs.statSync(filepath);
-        if (stats.size > this.maxFileSize) {
-          // 重命名当前文件，添加时间戳
-          const timestamp = date.toISOString().replace(/[:.]/g, '-');
-          const rotatedFilename = `${type}-${dateStr}-${timestamp}.log`;
-          const rotatedFilepath = path.join(this.logsDir, rotatedFilename);
-          fs.renameSync(filepath, rotatedFilepath);
-        }
+      if (type === 'error') {
+        this.errorLogger.error(logLine);
+      } else {
+        this.applicationLogger.info(logLine);
       }
-
-      // 追加日志到文件
-      fs.appendFileSync(filepath, logLine + '\n', 'utf8');
     } catch (error) {
       // 如果写入失败，至少输出到控制台
       ConsoleUtil.error('Failed to write log:', error);
       ConsoleUtil.error('Log line:', logLine);
-    }
-  }
-
-  /**
-   * 清理旧日志（超过30天）
-   */
-  private cleanOldLogs(): void {
-    try {
-      const files = fs.readdirSync(this.logsDir);
-      const now = Date.now();
-      const maxAge = this.maxDays * 24 * 60 * 60 * 1000; // 30天的毫秒数
-
-      files.forEach(file => {
-        const filepath = path.join(this.logsDir, file);
-        const stats = fs.statSync(filepath);
-
-        if (now - stats.mtime.getTime() > maxAge) {
-          fs.unlinkSync(filepath);
-          ConsoleUtil.log(`Deleted old log file: ${file}`);
-        }
-      });
-    } catch (error) {
-      ConsoleUtil.error('Failed to clean old logs:', error);
     }
   }
 
@@ -193,25 +196,25 @@ export class LoggerService implements NestLoggerService {
 
   // NestJS LoggerService 接口实现
   log(message: any, ...optionalParams: any[]): void {
-    const logLine = `[${new Date().toISOString()}] [INFO] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
+    const logLine = `[${DateUtil.formatDate(new Date())}] [INFO] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
     this.writeLog('application', logLine);
     ConsoleUtil.log(logLine);
   }
 
   error(message: any, ...optionalParams: any[]): void {
-    const logLine = `[${new Date().toISOString()}] [ERROR] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
+    const logLine = `[${DateUtil.formatDate(new Date())}] [ERROR] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
     this.writeLog('error', logLine);
     ConsoleUtil.error(logLine);
   }
 
   warn(message: any, ...optionalParams: any[]): void {
-    const logLine = `[${new Date().toISOString()}] [WARN] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
+    const logLine = `[${DateUtil.formatDate(new Date())}] [WARN] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
     this.writeLog('application', logLine);
     ConsoleUtil.warn(logLine);
   }
 
   debug(message: any, ...optionalParams: any[]): void {
-    const logLine = `[${new Date().toISOString()}] [DEBUG] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
+    const logLine = `[${DateUtil.formatDate(new Date())}] [DEBUG] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
     if (EnvUtil.isDevelopment()) {
       this.writeLog('application', logLine);
     }
@@ -219,7 +222,7 @@ export class LoggerService implements NestLoggerService {
   }
 
   verbose(message: any, ...optionalParams: any[]): void {
-    const logLine = `[${new Date().toISOString()}] [VERBOSE] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
+    const logLine = `[${DateUtil.formatDate(new Date())}] [VERBOSE] ${message} ${optionalParams.length ? JSON.stringify(optionalParams) : ''}`;
     if (EnvUtil.isDevelopment()) {
       this.writeLog('application', logLine);
     }

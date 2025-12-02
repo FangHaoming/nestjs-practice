@@ -44,24 +44,35 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ...(errorData && { data: errorData }),
     };
 
-    // 合并请求参数
-    const payload = {
-      ...(body && Object.keys(body).length > 0 && { body }),
-      ...(query && Object.keys(query).length > 0 && { query }),
-      ...(params && Object.keys(params).length > 0 && { params }),
-    };
+    // 检查是否为 WebSocket 升级请求或常见的 WebSocket 路径
+    const isWebSocketRequest = 
+      request.headers.upgrade?.toLowerCase() === 'websocket' ||
+      url.toLowerCase().includes('/ws') ||
+      url.toLowerCase().startsWith('/ws');
 
-    // 记录错误日志
-    this.logger.logError({
-      date: timestamp,
-      requestId,
-      method,
-      url,
-      code: status,
-      payload: Object.keys(payload).length > 0 ? payload : undefined,
-      response: errorResponse,
-      error: message,
-    });
+    // 如果是 WebSocket 相关的 404 错误，跳过日志记录（避免噪音）
+    const shouldSkipLogging = isWebSocketRequest && status === HttpStatus.NOT_FOUND;
+
+    if (!shouldSkipLogging) {
+      // 合并请求参数
+      const payload = {
+        ...(body && Object.keys(body).length > 0 && { body }),
+        ...(query && Object.keys(query).length > 0 && { query }),
+        ...(params && Object.keys(params).length > 0 && { params }),
+      };
+
+      // 记录错误日志
+      this.logger.logError({
+        date: timestamp,
+        requestId,
+        method,
+        url,
+        code: status,
+        payload: Object.keys(payload).length > 0 ? payload : undefined,
+        response: errorResponse,
+        error: message,
+      });
+    }
 
     response.status(status).json(errorResponse);
   }
