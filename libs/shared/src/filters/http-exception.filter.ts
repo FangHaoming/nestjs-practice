@@ -1,6 +1,7 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { IApiResponse, LoggerService } from '@nestjs-practice/shared';
+import { LoggerService } from '../services/logger.service';
+import { IApiResponse } from '../interfaces/common.interface';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
